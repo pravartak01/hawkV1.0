@@ -11,17 +11,18 @@ const userSchema = new Schema(
         },
         email: {
             type: String,
-            // unique: true,
+            unique: true,
             required: true,
             trim: true,
             lowercase: true
         },
         deviceName: { // unique name for the device of the organisation
             type: String,
-            // unique: true,
+            unique: true,
             lowercase: true,
             trim: true,
-            index: true
+            unique: true
+            // index: true
         },
         password: {
             type: String,
@@ -36,11 +37,23 @@ const userSchema = new Schema(
             default: null // for individuals
         },
         contactNumber:{
-            type: Number,
+            type: String,
         },
         role: {
             type: String,
             default: "user"
+        },
+        otp: {
+            type: String,
+            default: null
+        },
+        otpTimestamp: {
+            type: Date,
+            default: null
+        },
+        isVerified: {
+            type: Boolean,
+            default: false
         }
     },
     {
@@ -63,9 +76,7 @@ userSchema.methods.generateAccessToken = function(){
     return jwt.sign(
         {
             _id: this._id,
-            email: this.email,
-            username: this.username,
-            fullName: this.fullName
+            email: this.email
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -86,4 +97,4 @@ userSchema.methods.generateRefreshToken = function(){
     )
 }
 
-export const User = mongoose.model("Admin", userSchema);
+export const User = mongoose.model("User", userSchema);

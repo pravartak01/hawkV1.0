@@ -33,6 +33,25 @@ const adminSchema = new Schema(
         role:{
             type: String,
             default: "admin"
+        },
+        organization: {
+            type: Schema.Types.ObjectId,
+            ref: "Organization"
+        },
+        refreshToken: {
+            type: String
+        },
+        otp: {
+            type: String,
+            default: null
+        },
+        otpTimestamp: {
+            type: Date,
+            default: null
+        },
+        isVerified: {
+            type: Boolean,
+            default: false
         }
     },
     {
@@ -56,8 +75,6 @@ adminSchema.methods.generateAccessToken = function(){
         {
             _id: this._id,
             email: this.email,
-            username: this.username,
-            fullName: this.fullName
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -79,4 +96,4 @@ adminSchema.methods.generateRefreshToken = function(){
     )
 }
 
-export const User = mongoose.model("Admin", adminSchema);
+export const Admin = mongoose.model("Admin", adminSchema);

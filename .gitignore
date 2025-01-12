@@ -1,0 +1,39 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.pyc
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+*.env
+.env
+
+# Cloudinary upload temp
+public/temp/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
