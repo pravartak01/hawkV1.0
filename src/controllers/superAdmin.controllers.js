@@ -4,6 +4,7 @@ import { ApiError } from "../utils/apiError.js";
 import { Superadmin } from "../models/superAdmin.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
+import { Vulnerabilities } from "../models/vuln.models.js"
 
 const generateAccessAndRefereshTokens = async(organisationId) =>{
     try {
@@ -161,9 +162,42 @@ const getSuperAdminDetails = asyncHandler(async (req, res) => {
     )
 })
 
+const getVulnerabilities = asyncHandler(async (req, res) => {
+    const { limit = 10 } = req.body;
+    
+    // Validate limit
+    if (!Number.isInteger(Number(limit)) || limit <= 0) {
+        throw new ApiError(400, "Please provide a valid positive number for limit");
+    }
+
+    // Fetch vulnerabilities with limit
+    const vulnerabilities = await Vulnerabilities.find()
+        .limit(limit)
+        .sort({ createdAt: -1 });
+
+    // Check if any data was found
+    if (!vulnerabilities.length) {
+        throw new ApiError(404, "No vulnerabilities found");
+    }
+
+    res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                count: vulnerabilities.length,
+                vulnerabilities
+            },
+            `Successfully fetched ${vulnerabilities.length} vulnerabilities`
+        )
+    );
+});
+
 export {
     registerSuperAdmin,
     loginSuperadmin,
     logoutSuperadmin,
-    getSuperAdminDetails
+    getSuperAdminDetails,
+    getVulnerabilities
 }
