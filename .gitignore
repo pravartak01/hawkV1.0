@@ -37,3 +37,6 @@ public/temp/
 .idea/
 .vscode/
 *.swp
+
+#temp code
+tempCode.txt

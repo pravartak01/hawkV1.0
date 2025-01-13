@@ -6,6 +6,7 @@ import { Organization } from "../models/organization.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import EmailService from "../utils/emailVerification.js";
+import mongoose from "mongoose";
 
 const emailService = new EmailService();
 
@@ -296,7 +297,7 @@ const loginOrganization = asyncHandler(async (req, res) => {
             throw new ApiError(404, "organisation doesn't exsist");
         }
     
-        const isPasswordValid = organisation.isPasswordCorrect(password);
+        const isPasswordValid = await organisation.isPasswordCorrect(password);
     
         if(!isPasswordValid){
             throw new ApiError(401, "Invalid organisation credentails");
@@ -384,6 +385,186 @@ const logoutOrganization = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Organization logged out successfully"));
 })
 
+const getOrganizationDetails = asyncHandler(async (req, res) => {
+    res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            req.user,
+            "Organization details fetched successfully"
+        )
+    )
+})
+
+const addUsersInOrganization = asyncHandler(async (req, res) => {
+    const {emails} = req.body;
+    console.log(emails);
+    
+    if(!Array.isArray(emails) || emails.length === 0){
+        throw new ApiError(400, "email of the user is required")
+    }
+    let usersToAdd = [];
+
+    // emails.forEach(async (email, index) => {
+    //     const user = await User.findOne({email});
+
+    //     if(!user){
+    //         throw new ApiError(400, `user at index: ${index+1} not found! please enter a valid email which is already registerd on our platform`);
+    //     }
+        
+    //     user.organization = req.user?._id;
+    //     await user.save({ validateBeforeSave: false })
+        
+    //     emailsToAdd.push(email);
+    // }); // forEach dont have async capabilities
+    const errors = [];
+    for (const [index, email] of emails.entries()) {
+        try {
+            const user = await User.findOne({ email });
+            
+            if (!user) {
+                errors.push(`User at index: ${index + 1} (${email}) not found! Please enter a valid email that is already registered on our platform.`);
+                continue; // Skip to next iteration
+            }
+        
+            user.organization = req.user?._id;
+            await user.save({ validateBeforeSave: false });
+        
+            usersToAdd.push(user._id);
+        } catch (error) {
+            // Catch any other errors that might occur during user processing
+            errors.push(`Error processing user at index ${index + 1} (${email}): ${error.message}`);
+        }
+    }
+    
+    // Check if we have any valid users to add
+    if(!Array.isArray(usersToAdd) || usersToAdd.length === 0){
+        return res
+            .status(400)
+            .json(
+                new ApiResponse(
+                    400,
+                    { errors },
+                    "No valid users to add"
+                )
+            );
+    }
+    
+    // Proceed with organization update
+    try {
+        const updatedOrg = await Organization.findByIdAndUpdate(
+            req.user._id,
+            {
+                $addToSet: {
+                    users: {
+                        $each: usersToAdd
+                    }
+                }
+            },
+            {
+                new: true,
+            }
+        );
+    
+        // Return response with both success and error information
+        res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    {
+                        organization: updatedOrg,
+                        successCount: usersToAdd.length,
+                        errorCount: errors.length,
+                        errors: errors.length > 0 ? errors : undefined
+                    },
+                    errors.length > 0 
+                        ? `Added ${usersToAdd.length} users successfully with ${errors.length} errors`
+                        : "All users added successfully"
+                )
+            );
+    } catch (error) {
+        throw new ApiError(500, "Error updating organization: " + error.message);
+    }
+}); // or divide registration in 2 parts.. 1st collect all emails and send to users with and otp valid for 1hr.. and if they verify the otp at an end point.. update orgn user array 
+
+
+
+
+
+
+
+
+
+// update code
+const updateAccountDetails = asyncHandler(async (req, res) => {
+    const updateFields = {};
+    
+    Object.keys(req.body).forEach(key => {
+        if (req.body[key] !== undefined && req.body[key] !== null && req.body[key] !== '') {
+            updateFields[key] = req.body[key];
+        }
+    });
+
+    const protectedFields = ['_id', 'password' ,'role', 'createdAt', 'updatedAt', 'refreshToken', 'users','admins' ,'isVerified', 'otp', 'otpTimestamp'];
+    protectedFields.forEach(field => {
+        delete updateFields[field];
+    });
+
+    if (Object.keys(updateFields).length === 0) {
+        throw new ApiError(400, "Please provide at least one field to update");
+    }
+
+    console.log(updateFields);
+    
+
+    const user = await Organization.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: updateFields
+        },
+        {
+            new: true,
+            runValidators: true 
+        }
+    ).select("-password -otp -otpTimestamp -refreshToken -users -admins");
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user,
+            "Account details updated successfully"
+        )
+    );
+});
+
+const updatePassword = asyncHandler(async (req, res) => {
+        const {password} = req.body;
+
+        const user = await Organization.findById(req.user?._id);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+
+        user.password = password;
+        await user.save(); 
+
+        res
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "password updated successfully"
+            )
+        )
+})
 
 export { 
     initiateOrganizationRegistration,
@@ -391,5 +572,9 @@ export {
     completeOrganizationRegistration,
     resendOrganizationOTP,
     loginOrganization,
-    logoutOrganization
+    logoutOrganization,
+    getOrganizationDetails,
+    addUsersInOrganization,
+    updateAccountDetails,
+    updatePassword
 }

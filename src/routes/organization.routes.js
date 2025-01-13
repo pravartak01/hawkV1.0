@@ -8,7 +8,11 @@ import { initiateOrganizationRegistration,
          completeOrganizationRegistration,
          resendOrganizationOTP,
          loginOrganization,
-         logoutOrganization
+         logoutOrganization,
+         getOrganizationDetails,
+         addUsersInOrganization,
+         updateAccountDetails,
+         updatePassword
         } from "../controllers/organization.controllers.js"; 
 
 import { upload } from "../middlewares/multer.middlewares.js";
@@ -74,5 +78,11 @@ router.route("/login").post(loginOrganization)
 // secured routes
 router.route("/register-admin").post(verifyJWT("organization"), upload.single("avatar"), registerAdmin);
 router.route("/logout").post(verifyJWT("organization"), logoutOrganization);
+router.route("/details").get(verifyJWT("organization"), getOrganizationDetails);
+router.route("/add-users").post(verifyJWT("organization"), addUsersInOrganization);
+router.route("/update-details").post(verifyJWT("admin"), updateAccountDetails);
+router.route("/update-pass").post(verifyJWT("admin"), updatePassword);
+router.route("/update-details").post(verifyJWT("organization"), updateAccountDetails);
+router.route("/update-pass").post(verifyJWT("organization"), updatePassword);
 
 export default router

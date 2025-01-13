@@ -17,6 +17,7 @@ app.use(express.static("../public"));
 import userRouter from "./routes/user.routes.js"
 import organizationRouter  from "./routes/organization.routes.js";
 import adminRouter from "./routes/admin.routes.js";
+import superAdminRouter from "./routes/superadmin.routes.js";
 
 // routes
 app.get("/", (req, res) =>{
@@ -24,8 +25,9 @@ app.get("/", (req, res) =>{
 })
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/organization", organizationRouter);
-app.use("/api/v1/admin", adminRouter)
+app.use("/api/v1/admin", adminRouter);
+app.use("/api/v1/superadmin", superAdminRouter);
 
-// routes ends 
+// routes end
 
 export { app };

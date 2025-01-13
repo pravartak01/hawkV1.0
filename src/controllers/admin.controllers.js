@@ -274,7 +274,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
 
 // try {
         const {email, password} = req.body; // can take orgn name too
-        // console.log(email, password);
+        console.log(email, password);
         
         if(!email || !password){
             throw new ApiError(400, "email and password is required");
@@ -286,8 +286,9 @@ const loginAdmin = asyncHandler(async (req, res) => {
             throw new ApiError(404, "admin doesn't exsist");
         }
     
-        const isPasswordValid = admin.isPasswordCorrect(password);
-    
+        const isPasswordValid = await admin.isPasswordCorrect(password);
+        console.log(isPasswordValid);
+        
         if(!isPasswordValid){
             throw new ApiError(401, "Invalid admin credentails");
         }
@@ -348,11 +349,95 @@ const logoutAdmin = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Admin logged out successfully"));
 })
 
+const getAdminDetails = asyncHandler(async (req, res) => {
+    res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            req.user,
+            "Admin details fetched successfully"
+        )
+    )
+})
+
+// update code
+const updateAccountDetails = asyncHandler(async (req, res) => {
+    const updateFields = {};
+    
+    Object.keys(req.body).forEach(key => {
+        if (req.body[key] !== undefined && req.body[key] !== null && req.body[key] !== '') {
+            updateFields[key] = req.body[key];
+        }
+    });
+
+    const protectedFields = ['_id', 'password' ,'role', 'createdAt', 'updatedAt', 'refreshToken', 'organization', 'isVerified', 'otp', 'otpTimestamp'];
+    protectedFields.forEach(field => {
+        delete updateFields[field];
+    });
+
+    if (Object.keys(updateFields).length === 0) {
+        throw new ApiError(400, "Please provide at least one field to update");
+    }
+
+    console.log(updateFields);
+    
+
+    const user = await Admin.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: updateFields
+        },
+        {
+            new: true,
+            runValidators: true 
+        }
+    ).select("-password -otp -otpTimestamp -refreshToken -organization");
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user,
+            "Account details updated successfully"
+        )
+    );
+});
+
+const updatePassword = asyncHandler(async (req, res) => {
+        const {password} = req.body;
+
+        const user = await Admin.findById(req.user?._id);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+
+        user.password = password;
+        await user.save(); 
+
+        res
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "password updated successfully"
+            )
+        )
+})
+
 export { 
     registerAdmin,
     loginAdmin,
     logoutAdmin,
     initiateAdminRegistration,
     verifyAdminOTP,
-    resendAdminOTP
+    resendAdminOTP,
+    getAdminDetails,
+    updateAccountDetails,
+    updatePassword
 }

@@ -9,7 +9,10 @@ import {
     logoutUser,
     initiateRegistration,
     verifyOTP,
-    resendOTP
+    resendOTP,
+    getUserDetails,
+    updateAccountDetails,
+    updatePassword
 
 } from "../controllers/user.controllers.js";
 import { upload } from "../middlewares/multer.middlewares.js";
@@ -47,5 +50,8 @@ router.post("/register/resend-otp", resendOTP);
 // secured routes
 router.route("/login").post(loginUser);
 router.route("/logout").post(verifyJWT("user"), logoutUser);
+router.route("/details").get(verifyJWT("user"), getUserDetails)
+router.route("/update-details").post(verifyJWT("user"), updateAccountDetails);
+router.route("/update-pass").post(verifyJWT("user"), updatePassword);
 
 export default router

@@ -262,8 +262,6 @@ const resendOTP = asyncHandler(async (req, res) => {
     );
 });
 
-
-
 const loginUser = asyncHandler(async (req, res) => {
 
 // try {
@@ -280,7 +278,7 @@ const loginUser = asyncHandler(async (req, res) => {
             throw new ApiError(404, "user doesn't exsist");
         }
     
-        const isPasswordValid = user.isPasswordCorrect(password);
+        const isPasswordValid = await user.isPasswordCorrect(password);
     
         if(!isPasswordValid){
             throw new ApiError(401, "Invalid user credentails");
@@ -342,12 +340,97 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 })
 
+const getUserDetails = asyncHandler(async (req, res) => {
+    res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            req.user,
+            "User details fetched successfully"
+        )
+    )
+})
+
+
+
+// update code
+const updateAccountDetails = asyncHandler(async (req, res) => {
+    const updateFields = {};
+    
+    Object.keys(req.body).forEach(key => {
+        if (req.body[key] !== undefined && req.body[key] !== null && req.body[key] !== '') {
+            updateFields[key] = req.body[key];
+        }
+    });
+
+    const protectedFields = ['_id', 'password' ,'role', 'createdAt', 'updatedAt', 'refreshToken', 'organization', 'isVerified', 'otp', 'otpTimestamp'];
+    protectedFields.forEach(field => {
+        delete updateFields[field];
+    });
+
+    if (Object.keys(updateFields).length === 0) {
+        throw new ApiError(400, "Please provide at least one field to update");
+    }
+
+    console.log(updateFields);
+    
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: updateFields
+        },
+        {
+            new: true,
+            runValidators: true 
+        }
+    ).select("-password -otp -otpTimestamp -refreshToken");
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user,
+            "Account details updated successfully"
+        )
+    );
+});
+
+const updatePassword = asyncHandler(async (req, res) => {
+        const {password} = req.body;
+
+        const user = await User.findById(req.user?._id);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+
+        user.password = password;
+        await user.save(); 
+
+        res
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "password updated successfully"
+            )
+        )
+})
+
 export {
      registerUser,
      loginUser,
      logoutUser,
      initiateRegistration,
      verifyOTP,
-     resendOTP
-    
+     resendOTP,
+     getUserDetails,
+     updateAccountDetails,
+     updatePassword
     }
